@@ -831,8 +831,10 @@ function resizeCanvas(){
   GROUND = H - 44;
   /* Rigenera il gradiente cielo perché dipende da GROUND */
   skyGrad = ctx.createLinearGradient(0,0,0,GROUND);
-  skyGrad.addColorStop(0,'#7fd0ff');
-  skyGrad.addColorStop(1,'#cdefff');
+  skyGrad.addColorStop(0.00,'#6fb7ff');
+  skyGrad.addColorStop(0.42,'#b9b3ff');
+  skyGrad.addColorStop(0.72,'#ffc2cf');
+  skyGrad.addColorStop(1.00,'#ffe2ad');
   /* Ridistribuisce nuvole e erba sul nuovo viewport */
   for(var i=0;i<clouds.length;i++) if(clouds[i].x > W) clouds[i].x = Math.random()*W;
   for(var j=0;j<grass.length;j++)  if(grass[j].x  > W) grass[j].x  = Math.random()*W;
@@ -972,35 +974,65 @@ function nuvola(x,y,s){ ctx.fillStyle='rgba(255,255,255,.92)'; ctx.beginPath(); 
 
 function sfondo(dt){
   ctx.fillStyle=skyGrad; ctx.fillRect(0,0,W,GROUND);
-  /* SOLE = faccia — grande e visibile */
-  var sunX = W - 110, sunY = 82, sunR = 58;
+  /* ── SOLE = la foto: attraversa il cielo seguendo un arco, con raggi e alone caldo ── */
+  var sunR = 60;
+  var SUN_PERIOD = 42000;                              /* unità di "distance" per un giro completo */
+  var sp = (((distance||0) / SUN_PERIOD) + 0.16) % 1;  /* fase 0→1 del tragitto */
+  var horizonY = GROUND - 24, topY = 74;
+  var sunX = (W * 1.12) - (W * 1.24) * sp;             /* da destra (alba) a sinistra (tramonto) */
+  var sunY = horizonY - (horizonY - topY) * Math.sin(sp * Math.PI);
+  ctx.save();
+  /* raggi morbidi che ruotano lentamente */
+  ctx.translate(sunX, sunY); ctx.rotate(Date.now() * 0.00009);
+  for(var ry = 0; ry < 12; ry++){
+    ctx.rotate(Math.PI / 6);
+    var rg = ctx.createLinearGradient(0, -sunR * 1.15, 0, -sunR * 2.1);
+    rg.addColorStop(0, 'rgba(255,224,120,0.42)');
+    rg.addColorStop(1, 'rgba(255,224,120,0)');
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.moveTo(-7, -sunR * 1.15); ctx.lineTo(7, -sunR * 1.15); ctx.lineTo(0, -sunR * 2.1); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
   ctx.save();
   /* alone esterno luminoso */
-  var sunGlow = ctx.createRadialGradient(sunX, sunY, sunR * 0.7, sunX, sunY, sunR * 1.6);
-  sunGlow.addColorStop(0, 'rgba(255,230,80,0.38)');
-  sunGlow.addColorStop(1, 'rgba(255,230,80,0)');
-  ctx.fillStyle = sunGlow; ctx.beginPath(); ctx.arc(sunX, sunY, sunR * 1.6, 0, 6.3); ctx.fill();
-  /* disco giallo */
-  ctx.fillStyle = 'rgba(255,228,60,0.82)'; ctx.beginPath(); ctx.arc(sunX, sunY, sunR, 0, 6.3); ctx.fill();
-  /* faccia ritagliata dentro il disco */
+  var sunGlow = ctx.createRadialGradient(sunX, sunY, sunR * 0.6, sunX, sunY, sunR * 1.95);
+  sunGlow.addColorStop(0, 'rgba(255,234,150,0.55)');
+  sunGlow.addColorStop(1, 'rgba(255,234,150,0)');
+  ctx.fillStyle = sunGlow; ctx.beginPath(); ctx.arc(sunX, sunY, sunR * 1.95, 0, 6.3); ctx.fill();
+  /* disco caldo dietro la foto */
+  ctx.fillStyle = '#ffdf78'; ctx.beginPath(); ctx.arc(sunX, sunY, sunR, 0, 6.3); ctx.fill();
+  /* foto ritagliata nel disco — smoothing ON: la rende morbida invece che a blocchi */
   ctx.beginPath(); ctx.arc(sunX, sunY, sunR - 4, 0, Math.PI * 2); ctx.clip();
   if(_faceImgGlobal.complete && _faceImgGlobal.naturalWidth > 0){
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.translate(sunX, sunY); ctx.rotate(Math.PI);
     ctx.drawImage(_faceImgGlobal, -(sunR - 4), -(sunR - 4), (sunR - 4) * 2, (sunR - 4) * 2);
+    ctx.imageSmoothingEnabled = false;
   } else {
     ctx.fillStyle = '#ffd84a'; ctx.fillRect(sunX - sunR, sunY - sunR, sunR * 2, sunR * 2);
   }
+  ctx.restore();
+  /* bordo caldo per fondere la foto nel sole */
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,178,70,0.9)'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(sunX, sunY, sunR - 2, 0, 6.3); ctx.stroke();
   ctx.restore();
   
   for(var i=0;i<clouds.length;i++){ var c=clouds[i]; if(stato==='play') c.x-=(12+speed*0.04)*dt*c.s; if(c.x<-50){ c.x=W+40; c.y=30+Math.random()*160; c.s=.6+Math.random()*.7; } nuvola(c.x|0,c.y|0,c.s); }
   if(stato==='play') hillsX=(hillsX-speed*0.15*dt)%200;
   
-  ctx.fillStyle='#9fd6f0'; for(var mx=hillsX-200; mx<W+50; mx+=200){ ctx.beginPath(); ctx.moveTo(mx|0,GROUND-20); ctx.lineTo((mx+60)|0,GROUND-78); ctx.lineTo((mx+120)|0,GROUND-20); ctx.closePath(); ctx.fill(); }
+  /* foschia calda all'orizzonte */
+  var haze = ctx.createLinearGradient(0, GROUND-120, 0, GROUND);
+  haze.addColorStop(0, 'rgba(255,210,170,0)');
+  haze.addColorStop(1, 'rgba(255,198,150,0.5)');
+  ctx.fillStyle = haze; ctx.fillRect(0, GROUND-120, W, 120);
+  /* colline lontane (strato profondo, parallasse lenta) */
+  var farX = (hillsX*0.45)%240;
+  ctx.fillStyle='#c9b6e6'; for(var fx=farX-240; fx<W+60; fx+=240){ ctx.beginPath(); ctx.moveTo(fx|0,GROUND-14); ctx.lineTo((fx+90)|0,GROUND-58); ctx.lineTo((fx+180)|0,GROUND-14); ctx.closePath(); ctx.fill(); }
+  /* colline medie */
+  ctx.fillStyle='#9ec9a8'; for(var mx=hillsX-200; mx<W+50; mx+=200){ ctx.beginPath(); ctx.moveTo(mx|0,GROUND-20); ctx.lineTo((mx+60)|0,GROUND-78); ctx.lineTo((mx+120)|0,GROUND-20); ctx.closePath(); ctx.fill(); }
+  /* collina verde in primo piano */
   ctx.fillStyle='#7dd06a'; ctx.beginPath(); ctx.moveTo(0,GROUND); ctx.quadraticCurveTo((W*0.25)|0,GROUND-66,(W*0.5)|0,GROUND-18); ctx.quadraticCurveTo((W*0.78)|0,GROUND-86,W,GROUND-28); ctx.lineTo(W,GROUND); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#5fc24a'; ctx.fillRect(0,GROUND,W,H-GROUND); ctx.fillStyle='#3f9a36'; ctx.fillRect(0,GROUND,W,5);
-  for(var k=0;k<grass.length;k++){ var d=grass[k]; if(stato==='play') d.x-=speed*dt; if(d.x<-20){ d.x=W+Math.random()*120; d.t=(Math.random()*3)|0; }
-    var gx=d.x|0, gy=GROUND+14; ctx.fillStyle='#3f9a36'; ctx.fillRect(gx,gy,3,8); ctx.fillRect(gx-4,gy+2,3,6); ctx.fillRect(gx+4,gy+2,3,6);
-    if(d.t===1){ ctx.fillStyle='#ff7eb3'; ctx.fillRect(gx-1,gy-4,5,5); } if(d.t===2){ ctx.fillStyle='#ffd84a'; ctx.fillRect(gx-1,gy-4,5,5); } }
 }
 
 /* ===== CACTUS (Tall Cactus rimosso: non aggiunge decisioni di gameplay) ===== */

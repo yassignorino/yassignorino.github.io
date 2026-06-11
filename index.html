@@ -979,7 +979,8 @@ var hillsX=0; var skyGrad; /* inizializzato da resizeCanvas() */
 
 function nuvola(x,y,s){ ctx.fillStyle='rgba(255,255,255,.92)'; ctx.beginPath(); ctx.arc(x,y,14*s,0,6.3); ctx.arc(x+16*s,y+4*s,11*s,0,6.3); ctx.arc(x-16*s,y+4*s,10*s,0,6.3); ctx.arc(x,y+8*s,13*s,0,6.3); ctx.fill(); }
 
-function sfondo(dt){
+  function sfondo(dt){
+  ctx.clearRect(0,0,cv.width,cv.height);            /* wipe completo: nessuna scia residua */
   ctx.fillStyle=skyGrad; ctx.fillRect(0,0,W,GROUND);
   /* ── SOLE = la foto: attraversa il cielo seguendo un arco, con raggi e alone caldo ── */
   var sunR = 60;
@@ -1039,7 +1040,12 @@ function sfondo(dt){
   /* colline medie */
   ctx.fillStyle='#9ec9a8'; for(var mx=hillsX-200; mx<W+50; mx+=200){ ctx.beginPath(); ctx.moveTo(mx|0,GROUND-20); ctx.lineTo((mx+60)|0,GROUND-78); ctx.lineTo((mx+120)|0,GROUND-20); ctx.closePath(); ctx.fill(); }
   /* collina verde in primo piano */
+  /* collina verde in primo piano */
   ctx.fillStyle='#7dd06a'; ctx.beginPath(); ctx.moveTo(0,GROUND); ctx.quadraticCurveTo((W*0.25)|0,GROUND-66,(W*0.5)|0,GROUND-18); ctx.quadraticCurveTo((W*0.78)|0,GROUND-86,W,GROUND-28); ctx.lineTo(W,GROUND); ctx.closePath(); ctx.fill();
+  /* PAVIMENTO: verde pieno e pulito, fino in fondo al canvas */
+  ctx.fillStyle='#5fc24a'; ctx.fillRect(0, GROUND, W, (cv.height - GROUND) + 2);
+  ctx.fillStyle='#3f9a36'; ctx.fillRect(0, GROUND, W, 4);   /* bordo erba sottile e continuo */
+}
 }
 
 /* ===== CACTUS (Tall Cactus rimosso: non aggiunge decisioni di gameplay) ===== */

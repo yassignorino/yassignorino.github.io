@@ -823,11 +823,13 @@ var DRAW_H=96, DRAW_W=(DRAW_H*26/34)|0, noemiX=64;
 var GRAV=2600, JUMP=-780;
 
 function resizeCanvas(){
-  /* Usa la dimensione REALE del canvas in pagina (CSS 100%x100%),
-     non window.innerHeight: su iOS la barra di Safari la fa variare
-     e lasciava scoperta una striscia in basso (il "pavimento celeste"). */
-  W =  window.innerWidth;
-  H =  window.innerHeight;
+  /* Dimensione dell'area REALMENTE visibile (generale: iOS, Android, desktop).
+     Niente CSS sul canvas: il layout resta identico, i tasti restano cliccabili. */
+  var vw = window.visualViewport;
+  var nw = Math.round(vw ? vw.width  : window.innerWidth);
+  var nh = Math.round(vw ? vw.height : window.innerHeight);
+  if(nw===W && nh===H && cv.width===nw) return;   /* dimensione invariata: evita flicker */
+  W = nw; H = nh;
   cv.width  = W;
   cv.height = H;
   ctx.imageSmoothingEnabled = false;
@@ -847,9 +849,9 @@ function resizeCanvas(){
     ctx.drawImage(FR.idle,0,0,SPW,SPH,noemiX|0,(GROUND-DRAW_H)|0,DRAW_W,DRAW_H);
   }
 }
-window.awindow.addEventListener('resize', resizeCanvas);
+window.addEventListener('resize', resizeCanvas);
 window.addEventListener('orientationchange', function(){ setTimeout(resizeCanvas, 200); });
-if(window.visualViewport){ window.visualViewport.addEventListener('resize', resizeCanvas); }ddEventListener('resize', resizeCanvas);
+if(window.visualViewport){ window.visualViewport.addEventListener('resize', resizeCanvas); window.visualViewport.addEventListener('scroll', resizeCanvas); }
 
 var elScore=document.getElementById('score'), elRecHud=document.getElementById('recHud');
 var elRecMenu=document.getElementById('recMenu'), elRecOver=document.getElementById('recOver');

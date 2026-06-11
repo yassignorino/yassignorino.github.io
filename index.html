@@ -978,9 +978,9 @@ function sfondo(dt){
   var sunR = 60;
   var SUN_PERIOD = 42000;                              /* unità di "distance" per un giro completo */
   var sp = (((distance||0) / SUN_PERIOD) + 0.16) % 1;  /* fase 0→1 del tragitto */
-  var horizonY = GROUND - 24, topY = 74;
-  var sunX = (W * 1.12) - (W * 1.24) * sp;             /* da destra (alba) a sinistra (tramonto) */
-  var sunY = horizonY - (horizonY - topY) * Math.sin(sp * Math.PI);
+  var skyLow = GROUND * 0.40, skyTop = 60;             /* il sole resta in alto: non invade il suolo */
+  var sunX = (W * 1.12) - (W * 1.24) * sp;             /* entra da destra, esce a sinistra */
+  var sunY = skyLow - (skyLow - skyTop) * Math.sin(sp * Math.PI);
   ctx.save();
   /* raggi morbidi che ruotano lentamente */
   ctx.translate(sunX, sunY); ctx.rotate(Date.now() * 0.00009);
